@@ -53,7 +53,7 @@ namespace Service.ActiveOrders
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcSchema<HelloService, IHelloService>();
+                endpoints.MapGrpcSchema<ActiveOrderService, IActiveOrderService>();
 
                 endpoints.MapGrpcSchemaRegistry();
 

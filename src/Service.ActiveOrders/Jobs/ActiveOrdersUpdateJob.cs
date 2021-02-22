@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetCoreDecorators;
@@ -34,12 +35,8 @@ namespace Service.ActiveOrders.Jobs
         private async ValueTask HandleEvents(IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent> events)
         {
             _logger.LogDebug("Receive {count} events", events.Count);
-
-            foreach (var ev in events)
-            {
-                Console.WriteLine($"  {ev.Header.EventType} : {ev.Header.SequenceNumber}");
-            }
-            
+            var sw = new Stopwatch();
+            sw.Start();
 
             try
             {
@@ -73,11 +70,9 @@ namespace Service.ActiveOrders.Jobs
                     })
                     .ToList();
 
-                Console.WriteLine("Before database");
                 await UpdateOrderInDatabaseAsync(updates);
-                Console.WriteLine("after database");
-
-                //await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
+                
+                await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
             }
             catch (Exception ex)
             {
@@ -85,7 +80,8 @@ namespace Service.ActiveOrders.Jobs
                 throw;
             }
 
-            Console.WriteLine("Events is handled");
+            sw.Stop();
+            _logger.LogDebug("Handled {count} events. Time: {timeRangeText}", events.Count, sw.Elapsed.ToString());
         }
 
         private OrderType MapOrderType(ME.Contracts.OutgoingMessages.Order.Types.OrderType orderType)
