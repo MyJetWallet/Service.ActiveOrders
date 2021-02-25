@@ -66,11 +66,9 @@ namespace Service.ActiveOrders.Postgres
                     paramString += string.Format(_sqlInsertValues,
                         entity.OrderId,
                         entity.WalletId,
-                        //entity.BrokerId,
-                        //entity.ClientId,
-                        entity.WalletId,
-                        entity.WalletId,
-
+                        entity.BrokerId,
+                        entity.ClientId,
+                        
                         (int)entity.Type,
                         entity.InstrumentSymbol,
                         (int)entity.Side,
@@ -96,7 +94,7 @@ namespace Service.ActiveOrders.Postgres
                 catch(Exception ex)
                 {
                     Console.WriteLine($"InsertOrUpdateAsync exception:\n{ex}\n{sql}");
-
+                    throw;
                 }
             }
 
