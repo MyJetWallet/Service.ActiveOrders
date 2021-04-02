@@ -34,7 +34,7 @@ namespace Service.ActiveOrders.Jobs
 
         private async ValueTask HandleEvents(IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent> events)
         {
-            _logger.LogDebug("Receive {count} events", events.Count);
+            _logger.LogInformation("Receive {count} events", events.Count);
             var sw = new Stopwatch();
             sw.Start();
 
@@ -81,7 +81,7 @@ namespace Service.ActiveOrders.Jobs
             }
 
             sw.Stop();
-            _logger.LogDebug("Handled {count} events. Time: {timeRangeText}", events.Count, sw.Elapsed.ToString());
+            _logger.LogInformation("Handled {count} events. Time: {timeRangeText}", events.Count, sw.Elapsed.ToString());
         }
 
         private OrderType MapOrderType(ME.Contracts.OutgoingMessages.Order.Types.OrderType orderType)
