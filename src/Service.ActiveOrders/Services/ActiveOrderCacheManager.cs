@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,8 @@ namespace Service.ActiveOrders.Services
         private readonly IMyNoSqlServerDataWriter<OrderNoSqlEntity> _writer;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<ActiveOrderCacheManager> _logger;
+
 
         public ActiveOrderCacheManager(IMyNoSqlServerDataWriter<OrderNoSqlEntity> writer, DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
             ILoggerFactory loggerFactory)
@@ -22,6 +25,7 @@ namespace Service.ActiveOrders.Services
             _writer = writer;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
+            _logger = _loggerFactory.CreateLogger<ActiveOrderCacheManager>();
         }
 
 
@@ -54,17 +58,29 @@ namespace Service.ActiveOrders.Services
                     deleteList.AddRange(toDelete);
                 }
 
+                
                 if (insertList.Any())
                 {
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    
                     await _writer.BulkInsertOrReplaceAsync(insertList);
+                    
+                    sw.Stop();
+                    _logger.LogDebug("[NoSql] Successfully insert or update {count} items", insertList.Count);
                 }
+                
 
                 if (deleteList.Any())
                 {
-                    foreach (var item in deleteList)
-                    {
-                        await _writer.DeleteAsync(item.Item1, item.Item2);
-                    }
+                    var sw = new Stopwatch();
+                    sw.Start();
+
+                    var list = deleteList.Select(item => _writer.DeleteAsync(item.Item1, item.Item2).AsTask()).ToList();
+                    await Task.WhenAll(list);
+
+                    sw.Stop();
+                    _logger.LogDebug("[NoSql] Successfully delete {count} items", deleteList.Count);
                 }
             }
         }
