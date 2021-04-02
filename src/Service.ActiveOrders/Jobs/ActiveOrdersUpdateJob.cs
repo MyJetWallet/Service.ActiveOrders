@@ -60,7 +60,7 @@ namespace Service.ActiveOrders.Jobs
                                 MapSide(e.Update.Side),
                                 double.Parse(e.Update.Price),
                                 double.Parse(volume),
-                                double.Parse(e.Update.RemainingVolume),
+                                string.IsNullOrEmpty(e.Update.RemainingVolume) ? 0 : double.Parse(e.Update.RemainingVolume),
                                 e.Update.Registered.ToDateTime(),
                                 e.Update.StatusDate.ToDateTime(),
                                 MapStatus(e.Update.Status),
