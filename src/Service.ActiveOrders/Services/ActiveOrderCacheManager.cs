@@ -35,6 +35,8 @@ namespace Service.ActiveOrders.Services
             var insertList = new List<OrderNoSqlEntity>();
             var deleteList = new List<(string, string)>();
 
+            
+
             foreach (var wallet in updates.GroupBy(e => e.WalletId))
             {
                 if (!await IsWalletExistInCache(wallet.Key))
