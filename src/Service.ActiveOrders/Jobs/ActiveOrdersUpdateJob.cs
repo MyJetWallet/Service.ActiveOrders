@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
+using Newtonsoft.Json;
 using Service.ActiveOrders.Postgres;
 using Service.ActiveOrders.Services;
 
@@ -81,7 +82,9 @@ namespace Service.ActiveOrders.Jobs
             {
                 _logger.LogError(ex, "Cannot handle batch of MeEvent's");
                 ex.FailActivity();
-                events.AddToActivityAsJsonTag("me-events");
+
+                await Task.Delay(500);
+
                 throw;
             }
 
