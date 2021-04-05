@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
+using MyServiceBus.Abstractions;
 using MyServiceBus.TcpClient;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Jobs;
@@ -18,7 +19,7 @@ namespace Service.ActiveOrders.Modules
 
             var serviceBusClient = new MyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName);
             builder.RegisterInstance(serviceBusClient).AsSelf().SingleInstance();
-            builder.RegisterMeEventSubscriber(serviceBusClient, "active-orders", false);
+            builder.RegisterMeEventSubscriber(serviceBusClient, "active-orders", TopicQueueType.Permanent);
 
 
             builder.RegisterType<ActiveOrdersUpdateJob>().AutoActivate().SingleInstance();

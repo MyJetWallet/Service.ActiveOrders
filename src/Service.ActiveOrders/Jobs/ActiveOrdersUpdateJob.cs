@@ -7,6 +7,7 @@ using DotNetCoreDecorators;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
+using MyJetWallet.Sdk.Service;
 using Service.ActiveOrders.Postgres;
 using Service.ActiveOrders.Services;
 
@@ -34,6 +35,8 @@ namespace Service.ActiveOrders.Jobs
 
         private async ValueTask HandleEvents(IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent> events)
         {
+            using var activity = MyTelemetry.StartActivity("Handle ME OutgoingEvent's")?.AddTag("count-events", events.Count);
+
             _logger.LogInformation("Receive {count} events", events.Count);
             var sw = new Stopwatch();
             sw.Start();
@@ -77,6 +80,8 @@ namespace Service.ActiveOrders.Jobs
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Cannot handle batch of MeEvent's");
+                ex.FailActivity();
+                events.AddToActivityAsJsonTag("me-events");
                 throw;
             }
 

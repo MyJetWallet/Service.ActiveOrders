@@ -19,5 +19,8 @@ namespace Service.ActiveOrders.Settings
 
         [YamlProperty("ActiveOrders.MaxClientInCache")]
         public int MaxClientInCache { get; set; }
+
+        [YamlProperty("ActiveOrders.ZipkinUrl")]
+        public string ZipkinUrl { get; set; }
     }
 }

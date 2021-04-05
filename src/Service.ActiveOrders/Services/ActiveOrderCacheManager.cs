@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
+using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Postgres;
@@ -96,6 +97,8 @@ namespace Service.ActiveOrders.Services
 
         public async ValueTask<List<OrderNoSqlEntity>> AddWalletToCache(string walletId)
         {
+            walletId.AddToActivityAsTag("walletId");
+
             await using var ctx = GetDbContext();
 
             var orders = ctx.ActiveOrders.Where(e => e.WalletId == walletId);

@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Sdk.Service;
 
 namespace Service.ActiveOrders.Postgres
 {
     public class ActiveOrdersContext : DbContext
     {
+        private Activity _activity;
         private readonly ILoggerFactory _loggerFactory;
         public const string Schema = "activeorders";
 
@@ -19,6 +22,7 @@ namespace Service.ActiveOrders.Postgres
 
         public ActiveOrdersContext(DbContextOptions options, ILoggerFactory loggerFactory) : base(options)
         {
+            _activity = MyTelemetry.StartActivity($"Database context {Schema}");
             _loggerFactory = loggerFactory;
             InitSqlStatement();
         }
@@ -155,7 +159,7 @@ namespace Service.ActiveOrders.Postgres
 
         private string _sqlDelete1;
         private string _sqlDelete2;
-
+        
         private void InitSqlStatement()
         {
             // ReSharper disable once EntityNameCapturedOnly.Local
@@ -180,5 +184,11 @@ namespace Service.ActiveOrders.Postgres
             _sqlDelete2 = ")";
         }
 
+
+        public override void Dispose()
+        {
+            _activity?.Dispose();
+            base.Dispose();
+        }
     }
 }

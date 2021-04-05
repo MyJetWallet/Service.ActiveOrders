@@ -2,6 +2,7 @@
 using System.Timers;
 using Autofac;
 using Microsoft.Extensions.Logging;
+using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
 using Service.ActiveOrders.Domain.Models;
 
@@ -31,15 +32,19 @@ namespace Service.ActiveOrders.Jobs
 
         private void DoTime(object sender, ElapsedEventArgs e)
         {
+            using var activity = MyTelemetry.StartActivity("Clean NoSql");
+
             try
             {
                 var maxClients = Program.ReloadedSettings(e => e.MaxClientInCache).Invoke();
                 _writer.CleanAndKeepMaxPartitions(maxClients).GetAwaiter().GetResult();
                 _logger.LogInformation($"Cleanup {OrderNoSqlEntity.TableName} is done, keep max {maxClients} clients");
+                maxClients.AddToActivityAsTag("max clients");
             }
             catch(Exception ex)
             {
                 _logger.LogError(ex, $"Cannot cleanup {OrderNoSqlEntity.TableName}");
+                ex.FailActivity();
             }
         }
 
