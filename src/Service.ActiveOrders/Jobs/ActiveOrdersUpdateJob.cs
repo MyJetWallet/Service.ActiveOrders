@@ -51,7 +51,9 @@ namespace Service.ActiveOrders.Jobs
                     .Select(e =>
                     {
                         var id = e.Update.Id;
-                        var volume = e.Update.Volume;
+                        var volume = !string.IsNullOrEmpty(e.Update.Volume) ? e.Update.Volume : "0";
+                        var price = !string.IsNullOrEmpty(e.Update.Price) ?  e.Update.Price : "0";
+                        var remainingVolume = !string.IsNullOrEmpty(e.Update.RemainingVolume) ? e.Update.RemainingVolume : "0";
 
                         var entity =  OrderEntity.Create(
                             e.Update.WalletId,
@@ -62,9 +64,9 @@ namespace Service.ActiveOrders.Jobs
                                 MapOrderType(e.Update.OrderType),
                                 e.Update.AssetPairId,
                                 MapSide(e.Update.Side),
-                                double.Parse(e.Update.Price),
+                                double.Parse(price),
                                 double.Parse(volume),
-                                string.IsNullOrEmpty(e.Update.RemainingVolume) ? 0 : double.Parse(e.Update.RemainingVolume),
+                                double.Parse(remainingVolume),
                                 e.Update.Registered.ToDateTime(),
                                 e.Update.StatusDate.ToDateTime(),
                                 MapStatus(e.Update.Status),
