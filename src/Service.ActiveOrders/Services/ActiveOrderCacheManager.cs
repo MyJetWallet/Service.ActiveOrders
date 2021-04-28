@@ -78,8 +78,7 @@ namespace Service.ActiveOrders.Services
                 await transaction.CommitAsync();
                 sw.Stop();
             }
-
-
+            
             _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms", updates.Count, sw.ElapsedMilliseconds.ToString());
 
             sw.Reset();
