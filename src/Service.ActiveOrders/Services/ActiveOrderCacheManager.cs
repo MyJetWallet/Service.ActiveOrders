@@ -71,6 +71,7 @@ namespace Service.ActiveOrders.Services
                 }
             }
 
+            using var _ = MyTelemetry.StartActivity("No sql transaction commit");
             await transaction.CommitAsync();
 
             _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items", updates.Count);
