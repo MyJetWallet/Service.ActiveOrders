@@ -71,10 +71,15 @@ namespace Service.ActiveOrders.Services
                 }
             }
 
-            using var _ = MyTelemetry.StartActivity("No sql transaction commit");
-            await transaction.CommitAsync();
+            var sw = new Stopwatch();
+            using (var _ = MyTelemetry.StartActivity("No sql transaction commit"))
+            {
+                sw.Start();
+                await transaction.CommitAsync();
+                sw.Stop();
+            }
 
-            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items", updates.Count);
+            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText}", updates.Count, sw.Elapsed.ToString());
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
