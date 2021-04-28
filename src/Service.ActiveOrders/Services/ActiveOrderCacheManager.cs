@@ -35,12 +35,10 @@ namespace Service.ActiveOrders.Services
         {
             using var activity = MyTelemetry.StartActivity("Update active orders in MyNoSql")?.AddTag("count updates", updates.Count);
 
-            await using var transaction = await _writer.BeginTransactionAsync();
-
-            var countInBatch = 0;
-
             foreach (var wallet in updates.GroupBy(e => e.WalletId))
             {
+                await using var transaction = await _writer.BeginTransactionAsync();
+
                 if (!await IsWalletExistInCache(wallet.Key))
                 {
                     await AddWalletToCache(wallet.Key);
@@ -58,34 +56,19 @@ namespace Service.ActiveOrders.Services
                             .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
 
                     transaction.InsertOrReplace(data);
-
                     transaction.DeleteRows(OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
                 }
 
-                countInBatch += wallet.Count();
-                if (countInBatch > 1000)
+                var sw = new Stopwatch();
+                using (var _ = MyTelemetry.StartActivity("No sql transaction commit"))
                 {
-                    _logger.LogDebug("[NoSql] Will post transaction data because collect {count} orders in batch", countInBatch);
-                    await transaction.PostAsync();
-                    countInBatch = 0;
+                    sw.Start();
+                    await transaction.CommitAsync();
+                    sw.Stop();
                 }
-            }
 
-            var sw = new Stopwatch();
-            using (var _ = MyTelemetry.StartActivity("No sql transaction commit"))
-            {
-                sw.Start();
-                await transaction.CommitAsync();
-                sw.Stop();
+                _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms, Wallet: {walletId}", updates.Count, sw.ElapsedMilliseconds.ToString(), wallet.Key);
             }
-            
-            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms", updates.Count, sw.ElapsedMilliseconds.ToString());
-
-            sw.Reset();
-            sw.Start();
-            await transaction.DisposeAsync();
-            sw.Stop();
-            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
