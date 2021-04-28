@@ -33,10 +33,11 @@ namespace Service.ActiveOrders.Services
         //todo: add metrics to this method
         public async Task UpdateOrderInNoSqlCache(List<OrderEntity> updates)
         {
-            var insertList = new List<OrderNoSqlEntity>();
-            var deleteList = new List<(string, string)>();
+            using var activity = MyTelemetry.StartActivity("Update active orders in MyNoSql")?.AddTag("count updates", updates.Count);
 
-            
+            await using var transaction = await _writer.BeginTransactionAsync();
+
+            var countInBatch = 0;
 
             foreach (var wallet in updates.GroupBy(e => e.WalletId))
             {
@@ -51,41 +52,28 @@ namespace Service.ActiveOrders.Services
                             .Where(e => e.Status == OrderStatus.Placed)
                             .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
 
-                    insertList.AddRange(data);
-                    
+                    transaction. InsertOrReplace(data);
 
                     var toDelete = wallet
                         .Where(e => e.Status != OrderStatus.Placed)
-                        .Select(e => (OrderNoSqlEntity.GeneratePartitionKey(e.WalletId), OrderNoSqlEntity.GenerateRowKey(e.OrderId)));
+                        .Select(e => OrderNoSqlEntity.GenerateRowKey(e.OrderId))
+                        .ToArray();
 
-                    deleteList.AddRange(toDelete);
+                    transaction.DeleteRows(OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
                 }
 
-                
-                if (insertList.Any())
+                countInBatch += wallet.Count();
+                if (countInBatch > 1000)
                 {
-                    var sw = new Stopwatch();
-                    sw.Start();
-                    
-                    await _writer.BulkInsertOrReplaceAsync(insertList);
-                    
-                    sw.Stop();
-                    _logger.LogDebug("[NoSql] Successfully insert or update {count} items", insertList.Count);
-                }
-                
-
-                if (deleteList.Any())
-                {
-                    var sw = new Stopwatch();
-                    sw.Start();
-
-                    var list = deleteList.Select(item => _writer.DeleteAsync(item.Item1, item.Item2).AsTask()).ToList();
-                    await Task.WhenAll(list);
-
-                    sw.Stop();
-                    _logger.LogDebug("[NoSql] Successfully delete {count} items", deleteList.Count);
+                    _logger.LogDebug("[NoSql] Will post transaction data because collect {count} orders in batch", countInBatch);
+                    await transaction.PostAsync();
+                    countInBatch = 0;
                 }
             }
+
+            await transaction.CommitAsync();
+
+            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items", updates.Count);
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
