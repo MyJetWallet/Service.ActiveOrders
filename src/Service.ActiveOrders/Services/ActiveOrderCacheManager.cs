@@ -80,12 +80,13 @@ namespace Service.ActiveOrders.Services
             }
 
 
-            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText}", updates.Count, sw.Elapsed.ToString());
+            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms", updates.Count, sw.ElapsedMilliseconds.ToString());
 
-            sw.Restart();
+            sw.Reset();
+            sw.Start();
             await transaction.DisposeAsync();
             sw.Stop();
-            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText}", updates.Count, sw.Elapsed.ToString());
+            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText} ms", updates.Count, sw.ElapsedMilliseconds.ToString());
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
