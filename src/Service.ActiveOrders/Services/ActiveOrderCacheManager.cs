@@ -67,7 +67,7 @@ namespace Service.ActiveOrders.Services
                     sw.Stop();
                 }
 
-                _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms, Wallet: {walletId}", updates.Count, sw.ElapsedMilliseconds.ToString(), wallet.Key);
+                _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms, Wallet: {walletId}", wallet.Count(), sw.ElapsedMilliseconds.ToString(), wallet.Key);
             }
         }
 
