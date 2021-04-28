@@ -47,17 +47,17 @@ namespace Service.ActiveOrders.Services
                 }
                 else
                 {
-                    var data =
-                        wallet
-                            .Where(e => e.Status == OrderStatus.Placed)
-                            .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
-
-                    transaction. InsertOrReplace(data);
-
                     var toDelete = wallet
                         .Where(e => e.Status != OrderStatus.Placed)
                         .Select(e => OrderNoSqlEntity.GenerateRowKey(e.OrderId))
                         .ToArray();
+
+                    var data =
+                        wallet
+                            .Where(e => e.Status == OrderStatus.Placed && !toDelete.Contains(e.OrderId))
+                            .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
+
+                    transaction.InsertOrReplace(data);
 
                     transaction.DeleteRows(OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
                 }

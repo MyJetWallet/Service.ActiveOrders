@@ -182,12 +182,7 @@ namespace Service.ActiveOrders.Jobs
             sw.Stop();
             
             _logger.LogDebug("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
-
-            sw.Reset();
-            sw.Start();
-            await ctx.DisposeAsync();
-            sw.Stop();
-            _logger.LogDebug("Dispose DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
+            
         }
 
         private ActiveOrdersContext GetDbContext()
