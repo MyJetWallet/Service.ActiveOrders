@@ -159,20 +159,35 @@ namespace Service.ActiveOrders.Jobs
         {
             using var activity = MyTelemetry.StartActivity("Apply changes to database");
 
+
+            var sw = new Stopwatch();
+            sw.Start();
             await using var ctx = GetDbContext();
-
-            if (updates.Any(e => e.Status == OrderStatus.Placed))
             {
-                var count = await ctx.InsertOrUpdateAsync(updates.Where(e => e.Status == OrderStatus.Placed));
-                _logger.LogDebug("Successfully insert or update: {count}", count);
-            }
+
+                if (updates.Any(e => e.Status == OrderStatus.Placed))
+                {
+                    var count = await ctx.InsertOrUpdateAsync(updates.Where(e => e.Status == OrderStatus.Placed));
+                    _logger.LogDebug("Successfully insert or update: {count}", count);
+                }
 
 
-            if (updates.Any(e => e.Status != OrderStatus.Placed))
-            {
-                var count = await ctx.DeleteAsync(updates.Where(e => e.Status != OrderStatus.Placed).Select(e => e.OrderId));
-                _logger.LogDebug("Successfully delete: {count}", count);
+                if (updates.Any(e => e.Status != OrderStatus.Placed))
+                {
+                    var count = await ctx.DeleteAsync(updates.Where(e => e.Status != OrderStatus.Placed)
+                        .Select(e => e.OrderId));
+                    _logger.LogDebug("Successfully delete: {count}", count);
+                }
             }
+            sw.Stop();
+            
+            _logger.LogDebug("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
+
+            sw.Reset();
+            sw.Start();
+            await ctx.DisposeAsync();
+            sw.Stop();
+            _logger.LogDebug("Dispose DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
         }
 
         private ActiveOrdersContext GetDbContext()
