@@ -23,7 +23,7 @@ namespace Service.ActiveOrders.Settings
         [YamlProperty("ActiveOrders.ZipkinUrl")]
         public string ZipkinUrl { get; set; }
 
-        [YamlProperty("LiquidityEngine.ElkLogs")]
+        [YamlProperty("ActiveOrders.ElkLogs")]
         public LogElkSettings ElkLogs { get; set; }
     }
 }
