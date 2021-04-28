@@ -86,7 +86,7 @@ namespace Service.ActiveOrders.Services
             sw.Start();
             await transaction.DisposeAsync();
             sw.Stop();
-            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText} ms", updates.Count, sw.ElapsedMilliseconds.ToString());
+            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
