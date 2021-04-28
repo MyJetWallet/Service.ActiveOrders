@@ -157,6 +157,8 @@ namespace Service.ActiveOrders.Jobs
         //todo: add metrics to this method
         private async Task UpdateOrderInDatabaseAsync(List<OrderEntity> updates)
         {
+            using var activity = MyTelemetry.StartActivity("Apply changes to database");
+
             await using var ctx = GetDbContext();
 
             if (updates.Any(e => e.Status == OrderStatus.Placed))
