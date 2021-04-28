@@ -44,7 +44,7 @@ namespace Service.ActiveOrders
 
             services.AddDatabase(ActiveOrdersContext.Schema, Program.Settings.PostgresConnectionString, o => new ActiveOrdersContext(o, null));
 
-            services.AddMyTelemetry(Program.Settings.ZipkinUrl);
+            services.AddMyTelemetry(Program.Settings.ZipkinUrl, sources: new [] { "MyNoSql.TransactionsBuilder" });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
