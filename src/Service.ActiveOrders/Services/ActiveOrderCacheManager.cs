@@ -79,7 +79,13 @@ namespace Service.ActiveOrders.Services
                 sw.Stop();
             }
 
+
             _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText}", updates.Count, sw.Elapsed.ToString());
+
+            sw.Restart();
+            await transaction.DisposeAsync();
+            sw.Stop();
+            _logger.LogDebug("[NoSql] Dispose transaction. Time: {timeText}", updates.Count, sw.Elapsed.ToString());
         }
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
