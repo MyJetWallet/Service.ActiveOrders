@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Autofac;
+using Microsoft.Extensions.Configuration;
 using MyJetWallet.Sdk.GrpcMetrics;
 using MyJetWallet.Sdk.GrpcSchema;
 using MyJetWallet.Sdk.Postgres;
@@ -22,6 +23,13 @@ namespace Service.ActiveOrders
 {
     public class Startup
     {
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
+        public IConfiguration Configuration { get; }
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCodeFirstGrpc(options =>
@@ -29,6 +37,8 @@ namespace Service.ActiveOrders
                 options.Interceptors.Add<PrometheusMetricsInterceptor>();
                 options.BindMetricsInterceptors();
             });
+
+            services.AddApplicationInsightsTelemetry(Configuration);
 
             services.AddHostedService<ApplicationLifetimeManager>();
 
