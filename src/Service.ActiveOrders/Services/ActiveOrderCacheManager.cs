@@ -89,12 +89,17 @@ namespace Service.ActiveOrders.Services
 
             await using var ctx = GetDbContext();
 
+            await using var transaction = await _writer.BeginTransactionAsync();
+            
             var orders = ctx.ActiveOrders.Where(e => e.WalletId == walletId);
 
             var entityList = await orders.Select(e => OrderNoSqlEntity.Create(e.WalletId, e)).ToListAsync();
             entityList.Add(OrderNoSqlEntity.None(walletId));
 
-            await _writer.BulkInsertOrReplaceAsync(entityList);
+
+            transaction.InsertOrReplace(entityList);
+
+            await transaction.CommitAsync();
 
             return entityList;
         }
