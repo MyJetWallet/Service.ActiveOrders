@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
 using MyNoSqlServer.Abstractions;
+using MyNoSqlServer.GrpcDataWriter;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Postgres;
 
@@ -14,13 +15,15 @@ namespace Service.ActiveOrders.Services
 {
     public class ActiveOrderCacheManager : IActiveOrderCacheManager
     {
-        private readonly IMyNoSqlServerDataWriter<OrderNoSqlEntity> _writer;
+        private readonly MyNoSqlGrpcDataWriter _writer;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<ActiveOrderCacheManager> _logger;
 
 
-        public ActiveOrderCacheManager(IMyNoSqlServerDataWriter<OrderNoSqlEntity> writer, DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
+        public ActiveOrderCacheManager(
+            MyNoSqlGrpcDataWriter writer, 
+            DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
             ILoggerFactory loggerFactory)
         {
             _writer = writer;
@@ -37,7 +40,7 @@ namespace Service.ActiveOrders.Services
 
             foreach (var wallet in updates.GroupBy(e => e.WalletId))
             {
-                await using var transaction = await _writer.BeginTransactionAsync();
+                var transaction = _writer.BeginTransaction();
 
                 if (!await IsWalletExistInCache(wallet.Key))
                 {
@@ -55,8 +58,9 @@ namespace Service.ActiveOrders.Services
                             .Where(e => e.Status == OrderStatus.Placed && !toDelete.Contains(e.OrderId))
                             .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
 
-                    transaction.InsertOrReplace(data);
-                    transaction.DeleteRows(OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
+                    transaction.InsertOrReplaceEntities(data);
+
+                    transaction.DeleteRows(OrderNoSqlEntity.TableName, OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
                 }
 
                 var sw = new Stopwatch();
@@ -73,7 +77,7 @@ namespace Service.ActiveOrders.Services
 
         public async ValueTask<bool> IsWalletExistInCache(string walletId)
         {
-            var entity = await _writer.GetAsync(OrderNoSqlEntity.GeneratePartitionKey(walletId), OrderNoSqlEntity.NoneRowKey);
+            var entity = await _writer.GetRowAsync<OrderNoSqlEntity>(OrderNoSqlEntity.GeneratePartitionKey(walletId), OrderNoSqlEntity.NoneRowKey);
 
             return entity != null;
         }
@@ -84,7 +88,7 @@ namespace Service.ActiveOrders.Services
 
             await using var ctx = GetDbContext();
 
-            await using var transaction = await _writer.BeginTransactionAsync();
+            var transaction = _writer.BeginTransaction();
             
             var orders = ctx.ActiveOrders.Where(e => e.WalletId == walletId);
 
@@ -92,7 +96,7 @@ namespace Service.ActiveOrders.Services
             entityList.Add(OrderNoSqlEntity.None(walletId));
 
 
-            transaction.InsertOrReplace(entityList);
+            transaction.InsertOrReplaceEntities(entityList);
 
             await transaction.CommitAsync();
 

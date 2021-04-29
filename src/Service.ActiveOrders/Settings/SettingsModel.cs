@@ -25,5 +25,8 @@ namespace Service.ActiveOrders.Settings
 
         [YamlProperty("ActiveOrders.ElkLogs")]
         public LogElkSettings ElkLogs { get; set; }
+
+        [YamlProperty("ActiveOrders.MyNoSqlWriterGrpc")]
+        public string MyNoSqlWriterGrpc { get; set; }
     }
 }
