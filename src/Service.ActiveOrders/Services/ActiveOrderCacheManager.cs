@@ -61,7 +61,10 @@ namespace Service.ActiveOrders.Services
 
                     transaction.InsertOrReplaceEntities(data);
 
-                    transaction.DeleteRows(OrderNoSqlEntity.TableName, OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
+                    if (!toDelete.Any())
+                    {
+                        transaction.DeleteRows(OrderNoSqlEntity.TableName, OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
+                    }
                 }
 
                 var sw = new Stopwatch();
