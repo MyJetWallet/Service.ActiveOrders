@@ -57,11 +57,15 @@ namespace Service.ActiveOrders.Services
                     var data =
                         wallet
                             .Where(e => e.Status == OrderStatus.Placed && !toDelete.Contains(e.OrderId))
-                            .Select(e => OrderNoSqlEntity.Create(e.WalletId, e));
+                            .Select(e => OrderNoSqlEntity.Create(e.WalletId, e))
+                            .ToArray();
 
-                    transaction.InsertOrReplaceEntities(data);
+                    if (data.Any())
+                    {
+                        transaction.InsertOrReplaceEntities(data);
+                    }
 
-                    if (!toDelete.Any())
+                    if (toDelete.Any())
                     {
                         transaction.DeleteRows(OrderNoSqlEntity.TableName, OrderNoSqlEntity.GeneratePartitionKey(wallet.Key), toDelete);
                     }
