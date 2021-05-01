@@ -20,7 +20,7 @@ namespace Service.ActiveOrders.Modules
             //RegisterMyNoSqlWriter<OrderNoSqlEntity>(builder, OrderNoSqlEntity.TableName);
 
             var noSqlWriter = MyNoSqlGrpcDataWriterFactory
-                .Create(Program.Settings.MyNoSqlWriterGrpc)
+                .CreateNoSsl(Program.Settings.MyNoSqlWriterGrpc)
                 .RegisterSupportedEntity<OrderNoSqlEntity>(OrderNoSqlEntity.TableName);
 
             builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
