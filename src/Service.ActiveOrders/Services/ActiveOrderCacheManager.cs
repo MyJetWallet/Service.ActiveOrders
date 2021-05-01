@@ -51,6 +51,7 @@ namespace Service.ActiveOrders.Services
                     var toDelete = wallet
                         .Where(e => e.Status != OrderStatus.Placed)
                         .Select(e => OrderNoSqlEntity.GenerateRowKey(e.OrderId))
+                        .Where(e => !string.IsNullOrEmpty(e))
                         .ToArray();
 
                     var data =
