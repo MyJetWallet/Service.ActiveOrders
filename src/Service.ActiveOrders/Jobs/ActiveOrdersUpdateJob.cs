@@ -50,7 +50,7 @@ namespace Service.ActiveOrders.Jobs
                     .Select(e => e.OrderByDescending(i => i.SequenceNumber).First())
                     .Select(e =>
                     {
-                        var id = e.Update.Id;
+                        var id = e.Update.ExternalId;
                         var volume = !string.IsNullOrEmpty(e.Update.Volume) ? e.Update.Volume : "0";
                         var price = !string.IsNullOrEmpty(e.Update.Price) ?  e.Update.Price : "0";
                         var remainingVolume = !string.IsNullOrEmpty(e.Update.RemainingVolume) ? e.Update.RemainingVolume : "0";
