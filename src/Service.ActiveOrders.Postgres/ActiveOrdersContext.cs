@@ -44,12 +44,25 @@ namespace Service.ActiveOrders.Postgres
             modelBuilder.Entity<OrderEntity>().HasKey(e => e.OrderId).HasName("PK_active_orders");
             modelBuilder.Entity<OrderEntity>().HasIndex(e => new { e.WalletId, e.OrderId }).HasDatabaseName("IX_active_orders_wallet_order");
             modelBuilder.Entity<OrderEntity>().HasIndex(e => new { e.BrokerId, e.ClientId }).HasDatabaseName("IX_active_orders_broker_client");
-            modelBuilder.Entity<OrderEntity>().HasIndex(e => e.WalletId).HasDatabaseName("IX_balances_balances_wallet");
+            modelBuilder.Entity<OrderEntity>().HasIndex(e => e.WalletId).HasDatabaseName("IX_active_orders_wallet");
+            modelBuilder.Entity<OrderEntity>().HasIndex(e => e.Status).HasDatabaseName("IX_active_orders_status");
+            modelBuilder.Entity<OrderEntity>().HasIndex(e => new { e.WalletId, e.Status }).HasDatabaseName("IX_active_orders_wallet_status");
+            modelBuilder.Entity<OrderEntity>().HasIndex(e => new { e.Status, e.LastUpdate }).HasDatabaseName("IX_active_orders_status_lastUpdate");
             modelBuilder.Entity<OrderEntity>().Property(e => e.Price).HasPrecision(20);
             modelBuilder.Entity<OrderEntity>().Property(e => e.Volume).HasPrecision(20);
             modelBuilder.Entity<OrderEntity>().Property(e => e.RemainingVolume).HasPrecision(20);
 
             base.OnModelCreating(modelBuilder);
+        }
+
+        public async Task<int> ClearNotActiveOrders(TimeSpan lastUpdateTimeout)
+        {
+            using var activity = MyTelemetry.StartActivity("ClearNotActiveOrders");
+            var lastUpdate = DateTime.UtcNow.AddMilliseconds(-lastUpdateTimeout.TotalMilliseconds);
+            var sql = $"delete from activeorders.active_orders where \"Status\" <> 1 and \"LastUpdate\" < '{lastUpdate:O}'";
+            var count = await Database.ExecuteSqlRawAsync(sql);
+            count.AddToActivityAsTag("count");
+            return count;
         }
 
         //todo: add metrics to this method
