@@ -1,11 +1,8 @@
-﻿using System;
-using Autofac;
-using Grpc.Net.Client;
+﻿using Autofac;
+using MyJetWallet.Sdk.NoSql;
 using MyJetWallet.Sdk.Service;
-using MyNoSqlServer.Abstractions;
-using MyNoSqlServer.GrpcDataWriter;
+using MyJetWallet.Sdk.ServiceBus;
 using MyServiceBus.Abstractions;
-using MyServiceBus.TcpClient;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Jobs;
 using Service.ActiveOrders.Services;
@@ -17,20 +14,17 @@ namespace Service.ActiveOrders.Modules
     {
         protected override void Load(ContainerBuilder builder)
         {
-            //RegisterMyNoSqlWriter<OrderNoSqlEntity>(builder, OrderNoSqlEntity.TableName);
+            var serviceBusClient = builder.RegisterMyServiceBusTcpClient(
+                Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName,
+                Program.LoggerFactory);
+            
+            builder
+                .RegisterMeEventSubscriber(serviceBusClient, "active-orders", TopicQueueType.Permanent);
 
-            var noSqlWriter = MyNoSqlGrpcDataWriterFactory
-                .CreateNoSsl(Program.Settings.MyNoSqlWriterGrpc)
-                .RegisterSupportedEntity<OrderNoSqlEntity>(OrderNoSqlEntity.TableName);
-
-            builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
-
-            var serviceBusClient = new MyServiceBusTcpClient(Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName);
-            builder.RegisterInstance(serviceBusClient).AsSelf().SingleInstance();
-            builder.RegisterMeEventSubscriber(serviceBusClient, "active-orders", TopicQueueType.Permanent);
-
-
-            builder.RegisterType<ActiveOrdersUpdateJob>().AutoActivate().SingleInstance();
+            builder
+                .RegisterType<ActiveOrdersUpdateJob>()
+                .AutoActivate()
+                .SingleInstance();
 
             //builder
             //    .RegisterType<NoSqlCleanupJob>()
@@ -42,15 +36,9 @@ namespace Service.ActiveOrders.Modules
                 .RegisterType<ActiveOrderCacheManager>()
                 .As<IActiveOrderCacheManager>()
                 .SingleInstance();
-        }
 
-        //private void RegisterMyNoSqlWriter<TEntity>(ContainerBuilder builder, string table)
-        //    where TEntity : IMyNoSqlDbEntity, new()
-        //{
-        //    builder.Register(ctx => new MyNoSqlServer.GrpcDataWriter.MyNoSqlGrpcDataWriter().MyNoSqlServerDataWriter<TEntity>(
-        //            Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), table, true))
-        //        .As<IMyNoSqlServerDataWriter<TEntity>>()
-        //        .SingleInstance();
-        //}
+            builder
+                .RegisterMyNoSqlWriter<OrderNoSqlEntity>(Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), OrderNoSqlEntity.TableName);
+        }
     }
 }

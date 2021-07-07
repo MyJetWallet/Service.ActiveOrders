@@ -20,10 +20,11 @@
     <PackageReference Include="MyJetWallet.Domain" Version="1.0.30" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="2.0.0" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcSchema" Version="1.0.5" />
+    <PackageReference Include="MyJetWallet.Sdk.NoSql" Version="1.0.4" />
     <PackageReference Include="MyJetWallet.Sdk.Postgres" Version="1.2.0" />
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.5.5" />
+    <PackageReference Include="MyJetWallet.Sdk.ServiceBus" Version="1.0.3" />
     <PackageReference Include="MyJetWallet.Service.MatchingEngine.EventBridge.ServiceBus" Version="1.2.2" />
-    <PackageReference Include="MyNoSqlServer.GrpcDataWriter" Version="1.4.2-rc03" />
     <PackageReference Include="MyServiceBus.TcpClient" Version="2.4.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="5.0.7" />

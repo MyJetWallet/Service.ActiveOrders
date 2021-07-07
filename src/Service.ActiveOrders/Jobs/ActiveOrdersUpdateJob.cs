@@ -20,6 +20,7 @@ namespace Service.ActiveOrders.Jobs
         private readonly ILogger<ActiveOrdersUpdateJob> _logger;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
+        private readonly TimeSpan _cleanupOrderLastUpdateTimeout;
 
         public ActiveOrdersUpdateJob(ISubscriber<IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent>> subscriber,
             IActiveOrderCacheManager cacheCacheManager,
@@ -31,6 +32,7 @@ namespace Service.ActiveOrders.Jobs
             _logger = logger;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
+            _cleanupOrderLastUpdateTimeout = TimeSpan.Parse(Program.Settings.CleanupOrderLastUpdateTimeout);
             subscriber.Subscribe(HandleEvents);
         }
 
@@ -68,7 +70,7 @@ namespace Service.ActiveOrders.Jobs
                                 double.Parse(volume),
                                 double.Parse(remainingVolume),
                                 e.Update.Registered.ToDateTime(),
-                                e.Update.StatusDate.ToDateTime(),
+                                DateTime.UtcNow, 
                                 MapStatus(e.Update.Status),
                                 e.SequenceNumber
                             ));
@@ -76,7 +78,10 @@ namespace Service.ActiveOrders.Jobs
                     })
                     .ToList();
 
+                
                 await UpdateOrderInDatabaseAsync(updates);
+
+                await CleanupOrdersInDatabase();
                 
                 await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
             }
@@ -93,6 +98,8 @@ namespace Service.ActiveOrders.Jobs
             sw.Stop();
             _logger.LogInformation("Handled {count} events. Time: {timeRangeText}", events.Count, sw.Elapsed.ToString());
         }
+
+        
 
         private OrderType MapOrderType(ME.Contracts.OutgoingMessages.Order.Types.OrderType orderType)
         {
@@ -164,25 +171,32 @@ namespace Service.ActiveOrders.Jobs
             sw.Start();
             await using var ctx = GetDbContext();
             {
-
                 if (updates.Any(e => e.Status == OrderStatus.Placed))
                 {
                     var count = await ctx.InsertOrUpdateAsync(updates.Where(e => e.Status == OrderStatus.Placed));
                     _logger.LogDebug("Successfully insert or update: {count}", count);
                 }
-
-
-                if (updates.Any(e => e.Status != OrderStatus.Placed))
-                {
-                    var count = await ctx.DeleteAsync(updates.Where(e => e.Status != OrderStatus.Placed)
-                        .Select(e => e.OrderId));
-                    _logger.LogDebug("Successfully delete: {count}", count);
-                }
             }
             sw.Stop();
             
-            _logger.LogDebug("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
+            _logger.LogInformation("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
             
+        }
+
+        private async Task CleanupOrdersInDatabase()
+        {
+            using var activity = MyTelemetry.StartActivity("Cleanup orders in database");
+
+            var sw = new Stopwatch();
+            sw.Start();
+            int count;
+            await using var ctx = GetDbContext();
+            {
+                count = await ctx.ClearNotActiveOrders(_cleanupOrderLastUpdateTimeout);
+            }
+            sw.Stop();
+
+            _logger.LogInformation("Cleanup orders in database: {timeText} ms. Count: {count}", sw.ElapsedMilliseconds.ToString(), count);
         }
 
         private ActiveOrdersContext GetDbContext()

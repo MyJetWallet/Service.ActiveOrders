@@ -1,4 +1,5 @@
-﻿using MyJetWallet.Sdk.Service;
+﻿using System;
+using MyJetWallet.Sdk.Service;
 using MyYamlParser;
 
 namespace Service.ActiveOrders.Settings
@@ -28,5 +29,8 @@ namespace Service.ActiveOrders.Settings
 
         [YamlProperty("ActiveOrders.MyNoSqlWriterGrpc")]
         public string MyNoSqlWriterGrpc { get; set; }
+
+        [YamlProperty("ActiveOrders.CleanupOrderLastUpdateTimeout")]
+        public string CleanupOrderLastUpdateTimeout { get; set; }
     }
 }
