@@ -20,19 +20,20 @@ namespace Service.ActiveOrders.Jobs
         private readonly ILogger<ActiveOrdersUpdateJob> _logger;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly TimeSpan _cleanupOrderLastUpdateTimeout;
+        private readonly ICleanupDatabaseJob _cleanupDatabaseJob;
 
         public ActiveOrdersUpdateJob(ISubscriber<IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent>> subscriber,
             IActiveOrderCacheManager cacheCacheManager,
             ILogger<ActiveOrdersUpdateJob> logger,
             DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            ICleanupDatabaseJob cleanupDatabaseJob)
         {
             _cacheCacheManager = cacheCacheManager;
             _logger = logger;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
-            _cleanupOrderLastUpdateTimeout = TimeSpan.Parse(Program.Settings.CleanupOrderLastUpdateTimeout);
+            _cleanupDatabaseJob = cleanupDatabaseJob;
             subscriber.Subscribe(HandleEvents);
         }
 
@@ -81,9 +82,10 @@ namespace Service.ActiveOrders.Jobs
                 
                 await UpdateOrderInDatabaseAsync(updates);
 
-                await CleanupOrdersInDatabase();
-                
                 await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
+
+                if (events.Any())
+                    _cleanupDatabaseJob.SetLastReceiveTime(events.Where(e => e.Header?.Timestamp != null).Max(e => e.Header.Timestamp).ToDateTime());
             }
             catch (Exception ex)
             {
@@ -181,22 +183,6 @@ namespace Service.ActiveOrders.Jobs
             
             _logger.LogInformation("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
             
-        }
-
-        private async Task CleanupOrdersInDatabase()
-        {
-            using var activity = MyTelemetry.StartActivity("Cleanup orders in database");
-
-            var sw = new Stopwatch();
-            sw.Start();
-            int count;
-            await using var ctx = GetDbContext();
-            {
-                count = await ctx.ClearNotActiveOrders(_cleanupOrderLastUpdateTimeout);
-            }
-            sw.Stop();
-
-            _logger.LogInformation("Cleanup orders in database: {timeText} ms. Count: {count}", sw.ElapsedMilliseconds.ToString(), count);
         }
 
         private ActiveOrdersContext GetDbContext()
