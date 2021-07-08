@@ -2,6 +2,8 @@
 using MyJetWallet.Sdk.NoSql;
 using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.ServiceBus;
+using MyNoSqlServer.Abstractions;
+using MyNoSqlServer.GrpcDataWriter;
 using MyServiceBus.Abstractions;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Jobs;
@@ -18,27 +20,25 @@ namespace Service.ActiveOrders.Modules
                 Program.ReloadedSettings(e => e.SpotServiceBusHostPort), ApplicationEnvironment.HostName,
                 Program.LoggerFactory);
             
-            builder
-                .RegisterMeEventSubscriber(serviceBusClient, "active-orders", TopicQueueType.Permanent);
+            builder.RegisterMeEventSubscriber(serviceBusClient, "active-orders", TopicQueueType.Permanent);
 
             builder
                 .RegisterType<ActiveOrdersUpdateJob>()
                 .AutoActivate()
                 .SingleInstance();
 
-            //builder
-            //    .RegisterType<NoSqlCleanupJob>()
-            //    .As<IStartable>()
-            //    .AutoActivate()
-            //    .SingleInstance();
-
             builder
                 .RegisterType<ActiveOrderCacheManager>()
                 .As<IActiveOrderCacheManager>()
                 .SingleInstance();
 
-            builder
-                .RegisterMyNoSqlWriter<OrderNoSqlEntity>(Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), OrderNoSqlEntity.TableName);
+            //builder.RegisterMyNoSqlWriter<OrderNoSqlEntity>(Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), OrderNoSqlEntity.TableName);
+
+            var noSqlWriter = MyNoSqlGrpcDataWriterFactory
+                .CreateNoSsl(Program.Settings.MyNoSqlWriterGrpc)
+                .RegisterSupportedEntity<OrderNoSqlEntity>(OrderNoSqlEntity.TableName);
+
+            builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
         }
     }
 }

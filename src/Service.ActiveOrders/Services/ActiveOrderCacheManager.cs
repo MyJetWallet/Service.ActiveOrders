@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
-using MyNoSqlServer.Abstractions;
+using MyNoSqlServer.GrpcDataWriter;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Postgres;
 
@@ -16,14 +15,14 @@ namespace Service.ActiveOrders.Services
 {
     public class ActiveOrderCacheManager : IActiveOrderCacheManager
     {
-        private readonly IMyNoSqlServerDataWriter<OrderNoSqlEntity> _writer;
+        private readonly MyNoSqlGrpcDataWriter _writer;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<ActiveOrderCacheManager> _logger;
 
 
         public ActiveOrderCacheManager(
-            IMyNoSqlServerDataWriter<OrderNoSqlEntity> writer, 
+            MyNoSqlGrpcDataWriter writer, 
             DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
             ILoggerFactory loggerFactory)
         {
@@ -31,6 +30,8 @@ namespace Service.ActiveOrders.Services
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<ActiveOrderCacheManager>();
+
+            _writer.SetTableMaxPartitionsAmountAsync(OrderNoSqlEntity.TableName, Program.Settings.MaxClientInCache).GetAwaiter().GetResult();
         }
 
 
@@ -59,11 +60,23 @@ namespace Service.ActiveOrders.Services
             
             var entities = await LoadWallet(walletId);
 
-            await _writer.CleanAndBulkInsertAsync(OrderNoSqlEntity.GeneratePartitionKey(walletId), entities);
+            var transaction = _writer.BeginTransaction();
+
+            transaction.DeletePartitions(OrderNoSqlEntity.TableName, new []{ OrderNoSqlEntity.GeneratePartitionKey(walletId) });
+
+            transaction.InsertOrReplaceEntities(entities);
+
+            var sw1 = new Stopwatch();
+            using (var _ = MyTelemetry.StartActivity("No sql transaction commit"))
+            {
+                sw1.Start();
+                await transaction.CommitAsync();
+                sw1.Stop();
+            }
 
             sw.Stop();
 
-            _logger.LogDebug("[NoSql] Successfully insert or update or delete {count} items. Time: {timeText} ms, Wallet: {walletId}", entities.Count(), sw.ElapsedMilliseconds.ToString(), walletId);
+            _logger.LogDebug("[NoSql] Successfully update {count} items. Time: {timeText} ms, NoSql time: {timeText2}, Wallet: {walletId}", entities.Count(), sw.ElapsedMilliseconds.ToString(), sw1.ElapsedMilliseconds.ToString(), walletId);
 
             return entities;
         }

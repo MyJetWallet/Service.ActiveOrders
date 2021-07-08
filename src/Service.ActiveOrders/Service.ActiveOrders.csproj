@@ -20,7 +20,8 @@
     <PackageReference Include="MyJetWallet.Domain" Version="1.0.30" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="2.0.0" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcSchema" Version="1.0.5" />
-    <PackageReference Include="MyJetWallet.Sdk.NoSql" Version="1.0.4" />
+    
+    <PackageReference Include="MyNoSqlServer.GrpcDataWriter" Version="1.4.2-rc03" />
     <PackageReference Include="MyJetWallet.Sdk.Postgres" Version="1.2.0" />
     <PackageReference Include="MyJetWallet.Sdk.Service" Version="1.5.5" />
     <PackageReference Include="MyJetWallet.Sdk.ServiceBus" Version="1.0.3" />
