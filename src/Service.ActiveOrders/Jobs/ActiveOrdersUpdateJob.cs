@@ -171,9 +171,9 @@ namespace Service.ActiveOrders.Jobs
             sw.Start();
             await using var ctx = GetDbContext();
             {
-                if (updates.Any(e => e.Status == OrderStatus.Placed))
+                if (updates.Any())
                 {
-                    var count = await ctx.InsertOrUpdateAsync(updates.Where(e => e.Status == OrderStatus.Placed));
+                    var count = await ctx.InsertOrUpdateAsync(updates);
                     _logger.LogDebug("Successfully insert or update: {count}", count);
                 }
             }
