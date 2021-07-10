@@ -20,20 +20,17 @@ namespace Service.ActiveOrders.Jobs
         private readonly ILogger<ActiveOrdersUpdateJob> _logger;
         private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly ICleanupDatabaseJob _cleanupDatabaseJob;
 
         public ActiveOrdersUpdateJob(ISubscriber<IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent>> subscriber,
             IActiveOrderCacheManager cacheCacheManager,
             ILogger<ActiveOrdersUpdateJob> logger,
             DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
-            ILoggerFactory loggerFactory,
-            ICleanupDatabaseJob cleanupDatabaseJob)
+            ILoggerFactory loggerFactory)
         {
             _cacheCacheManager = cacheCacheManager;
             _logger = logger;
             _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
-            _cleanupDatabaseJob = cleanupDatabaseJob;
             subscriber.Subscribe(HandleEvents);
         }
 
@@ -84,8 +81,6 @@ namespace Service.ActiveOrders.Jobs
 
                 await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
 
-                if (events.Any())
-                    _cleanupDatabaseJob.SetLastReceiveTime(events.Where(e => e.Header?.Timestamp != null).Max(e => e.Header.Timestamp).ToDateTime());
             }
             catch (Exception ex)
             {
