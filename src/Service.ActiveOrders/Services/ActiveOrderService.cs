@@ -18,24 +18,23 @@ namespace Service.ActiveOrders.Services
 
         public async Task<SpotOrderList> GetActiveOrdersAsync(GetActiveOrdersRequest request)
         {
-            var data = await _cacheManager.AddWalletToCache(request.WalletId);
+            var data = _cacheManager.GetWalletOrders(request.WalletId);
 
             return new SpotOrderList()
             {
                 Orders = data
-                    .Where(e => e.IsReal)
                     .Select(e => new SpotOrder(
-                        e.Order.OrderId,
-                        e.Order.Type,
-                        e.Order.InstrumentSymbol,
-                        e.Order.Side,
-                        e.Order.Price,
-                        e.Order.Volume,
-                        e.Order.RemainingVolume,
-                        e.Order.CreatedTime,
-                        e.Order.LastUpdate,
-                        e.Order.Status,
-                        e.Order.LastSequenceId))
+                        e.OrderId,
+                        e.Type,
+                        e.InstrumentSymbol,
+                        e.Side,
+                        e.Price,
+                        e.Volume,
+                        e.RemainingVolume,
+                        e.CreatedTime,
+                        e.LastUpdate,
+                        e.Status,
+                        e.LastSequenceId))
                     .ToList()
             };
         }

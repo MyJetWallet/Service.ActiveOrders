@@ -35,6 +35,24 @@ namespace Service.ActiveOrders.Services
         }
 
 
+        public List<OrderEntity> GetWalletOrders(string walletId)
+        {
+            Dictionary<string, OrderEntity> walletOrders;
+
+            lock (_data)
+            {
+                if (!_data.TryGetValue(walletId, out walletOrders))
+                {
+                    walletOrders = new Dictionary<string, OrderEntity>();
+                }
+            }
+
+            lock (walletOrders)
+            {
+                return walletOrders.Values.ToList();
+            }
+        }
+
         //todo: add metrics to this method
         public async Task UpdateOrderInNoSqlCache(List<OrderEntity> updates)
         {
@@ -42,29 +60,44 @@ namespace Service.ActiveOrders.Services
 
             var taskList = new List<Task>();
 
-            foreach (var wallet in updates.Select(e => e.WalletId).Distinct())
+
+            foreach (var group in updates.GroupBy(e => e.WalletId))
             {
-                taskList.Add(AddWalletToCache(wallet));
+                taskList.Add(UpdateWalletInCache(group.Key, group.ToList()));
             }
 
             await Task.WhenAll(taskList);
         }
 
-        public async Task<List<OrderNoSqlEntity>> AddWalletToCache(string walletId)
-        {
-            var sw = new Stopwatch();
-            sw.Start();
+        private Dictionary<string, Dictionary<string, OrderEntity>> _data = new Dictionary<string, Dictionary<string, OrderEntity>>();
 
-            using var activity = MyTelemetry.StartActivity("Add wallet to cache");
-            walletId.AddToActivityAsTag("walletId");
-            
-            var entities = await LoadWallet(walletId);
+        private async Task UpdateWalletInCache(string walletId, List<OrderEntity> orders)
+        {
+            Dictionary<string, OrderEntity> walletOrders;
+            lock (_data)
+            {
+                if (!_data.TryGetValue(walletId, out walletOrders))
+                {
+                    walletOrders = new Dictionary<string, OrderEntity>();
+                    _data[walletId] = walletOrders;
+                }
+            }
+
+            lock (walletOrders)
+            {
+                foreach (var order in orders.OrderBy(e => e.LastSequenceId))
+                {
+                    if (order.Status != OrderStatus.Placed)
+                        walletOrders.Remove(order.OrderId);
+                    else
+                        walletOrders[order.OrderId] = order;
+                }
+            }
 
             var transaction = _writer.BeginTransaction();
-
-            transaction.DeletePartitions(OrderNoSqlEntity.TableName, new []{ OrderNoSqlEntity.GeneratePartitionKey(walletId) });
-
-            transaction.InsertOrReplaceEntities(entities);
+            var list = walletOrders.Values.Select(e => OrderNoSqlEntity.Create(e.WalletId, e)).ToList();
+            transaction.DeletePartitions(OrderNoSqlEntity.TableName, new[] { OrderNoSqlEntity.GeneratePartitionKey(walletId) });
+            transaction.InsertOrReplaceEntities(list);
 
             var sw1 = new Stopwatch();
             using (var _ = MyTelemetry.StartActivity("No sql transaction commit"))
@@ -74,26 +107,8 @@ namespace Service.ActiveOrders.Services
                 sw1.Stop();
             }
 
-            sw.Stop();
+            _logger.LogDebug("[NoSql] Successfully update {count} items. NoSql time: {timeText2}, Wallet: {walletId}", list.Count(), sw1.ElapsedMilliseconds.ToString(), walletId);
 
-            _logger.LogDebug("[NoSql] Successfully update {count} items. Time: {timeText} ms, NoSql time: {timeText2}, Wallet: {walletId}", entities.Count(), sw.ElapsedMilliseconds.ToString(), sw1.ElapsedMilliseconds.ToString(), walletId);
-
-            return entities;
-        }
-
-        public async Task<List<OrderNoSqlEntity>> LoadWallet(string walletId)
-        {
-            using var activity = MyTelemetry.StartActivity("Load wallet from database");
-            walletId.AddToActivityAsTag("walletId");
-
-            await using var ctx = GetDbContext();
-            
-            var orders = ctx.ActiveOrders.Where(e => e.WalletId == walletId && e.Status == OrderStatus.Placed);
-            var entityList = await orders.Select(e => OrderNoSqlEntity.Create(e.WalletId, e)).ToListAsync();
-
-            entityList.Count.AddToActivityAsTag("count-item");
-
-            return entityList;
         }
 
         private ActiveOrdersContext GetDbContext()

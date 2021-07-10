@@ -32,11 +32,11 @@ namespace Service.ActiveOrders.Modules
                 .As<IActiveOrderCacheManager>()
                 .SingleInstance();
 
-            builder
-                .RegisterType<CleanupDatabaseJob>()
-                .As<ICleanupDatabaseJob>()
-                .AsSelf()
-                .SingleInstance();
+            //builder
+            //    .RegisterType<CleanupDatabaseJob>()
+            //    .As<ICleanupDatabaseJob>()
+            //    .AsSelf()
+            //    .SingleInstance();
 
             //builder.RegisterMyNoSqlWriter<OrderNoSqlEntity>(Program.ReloadedSettings(e => e.MyNoSqlWriterUrl), OrderNoSqlEntity.TableName);
 

@@ -49,7 +49,7 @@ namespace Service.ActiveOrders.Jobs
 
             if ((DateTime.UtcNow - _lastReceiveTime).TotalMilliseconds < _timeout.TotalMilliseconds / 2)
             {
-                _logger.LogInformation("CleanupDatabaseJob - SKIP - do not receive events");
+                _logger.LogInformation($"CleanupDatabaseJob - SKIP - do not receive events (last receive: {_lastReceiveTime:O}");
                 return;
             }
 

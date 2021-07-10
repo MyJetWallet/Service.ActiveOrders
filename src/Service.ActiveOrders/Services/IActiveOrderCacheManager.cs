@@ -8,6 +8,6 @@ namespace Service.ActiveOrders.Services
     public interface IActiveOrderCacheManager
     {
         Task UpdateOrderInNoSqlCache(List<OrderEntity> updates);
-        Task<List<OrderNoSqlEntity>> AddWalletToCache(string walletId);
+        List<OrderEntity> GetWalletOrders(string walletId);
     }
 }

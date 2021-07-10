@@ -80,7 +80,7 @@ namespace Service.ActiveOrders.Jobs
                     .ToList();
 
                 
-                await UpdateOrderInDatabaseAsync(updates);
+                //await UpdateOrderInDatabaseAsync(updates);
 
                 await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
 
