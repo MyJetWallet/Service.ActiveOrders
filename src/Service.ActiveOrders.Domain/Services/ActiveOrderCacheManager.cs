@@ -23,8 +23,6 @@ namespace Service.ActiveOrders.Domain.Services
         {
             _writer = writer;
             _logger = logger;
-
-            
         }
 
         //todo: add metrics to this method

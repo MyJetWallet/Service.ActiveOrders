@@ -34,6 +34,7 @@ namespace Service.ActiveOrders.Job.Modules
                 .CreateNoSsl(Program.Settings.MyNoSqlWriterGrpc)
                 .RegisterSupportedEntity<OrderNoSqlEntity>(OrderNoSqlEntity.TableName);
 
+
             builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
 
         }
