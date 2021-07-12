@@ -5,7 +5,7 @@ namespace Service.ActiveOrders.Domain.Models
 {
     public class OrderNoSqlEntity: MyNoSqlDbEntity
     {
-        public const string TableName = "myjetwallet-client-active-orders";
+        public const string TableName = "myjetwallet-client-active-orders-full";
 
         public const string NoneRowKey = "--none--";
 

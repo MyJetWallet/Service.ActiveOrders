@@ -30,18 +30,24 @@ jobs:
     - name: ls
       run: ls
 
-    - name: Publish Service
+    - name: Publish Service API
       run: dotnet publish ./src/Service.ActiveOrders/Service.ActiveOrders.csproj --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/} --output ./publish-api
 
-    - name: Check Service dir
+    - name: Publish Service JOB
+      run: dotnet publish ./src/Service.ActiveOrders.Job/Service.ActiveOrders.Job.csproj --configuration Release /p:AssemblyVersion=${GITHUB_REF#refs/tags/} --output ./publish-job
+
+    - name: Check Service dir API
       run: ls ./publish-api
+
+    - name: Check Service dir JOB
+      run: ls ./publish-job
 
     - name: Extract branch name
       shell: bash
       run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/tags/})"
       id: extract_branch
 
-    - name: Publish image
+    - name: Publish image API
       uses: docker/build-push-action@v1
       with:
         username: ${{ github.actor }}
@@ -52,7 +58,7 @@ jobs:
         tag_with_ref: true
         build_args: app_version=myjetwallet.service.activeorders:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
-    - name: Publish image ST
+    - name: Publish image ST API
       uses: docker/build-push-action@v1
       with:
         username: ${{ secrets.ST_DOCKER_USER }}
@@ -62,6 +68,30 @@ jobs:
         repository: spot/myjetwallet.service.activeorders
         tag_with_ref: true
         build_args: app_version=myjetwallet.service.activeorders:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image JOB
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        path: ./publish-job
+        registry: docker.pkg.github.com
+        repository: ${{ secrets.ORG_NAME }}/service.activeorders.job/myjetwallet.service.activeorders.job
+        tag_with_ref: true
+        build_args: app_version=myjetwallet.service.activeorders.job:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image ST JOB
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.ST_DOCKER_USER }}
+        password: ${{ secrets.ST_DOCKER_PASSWORD }}
+        path: ./publish-api
+        registry: simpletrading.azurecr.io
+        repository: spot/myjetwallet.service.activeorders.job
+        tag_with_ref: true
+        build_args: app_version=myjetwallet.service.activeorders.job:${{ steps.extract_branch.outputs.branch }},app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+
 
   update_version:
     needs: build
@@ -79,7 +109,16 @@ jobs:
         reg=$"s/${pattern}/${imagename}/g"
         echo $reg
         find . -type f -name "deployment.*" -print0 -exec sed -i -r $reg {} \;
+        
+        pattern=myjetwallet.service.activeorders.job:.*$
+        imagename=myjetwallet.service.activeorders.job:${GITHUB_REF#refs/tags/}
+        reg=$"s/${pattern}/${imagename}/g"
+        echo $reg
+        find . -type f -name "deployment.*" -print0 -exec sed -i -r $reg {} \;
+        
+        
         git config user.name github-actions
         git config user.email github-actions@github.com
         git commit -a -m "Update version of service"
         git push
+

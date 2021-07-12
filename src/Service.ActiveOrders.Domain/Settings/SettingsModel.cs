@@ -1,16 +1,12 @@
-﻿using System;
-using MyJetWallet.Sdk.Service;
+﻿using MyJetWallet.Sdk.Service;
 using MyYamlParser;
 
-namespace Service.ActiveOrders.Settings
+namespace Service.ActiveOrders.Domain.Settings
 {
     public class SettingsModel
     {
         [YamlProperty("ActiveOrders.SeqServiceUrl")]
         public string SeqServiceUrl { get; set; }
-
-        [YamlProperty("ActiveOrders.PostgresConnectionString")]
-        public string PostgresConnectionString { get; set; }
 
         [YamlProperty("ActiveOrders.MyNoSqlWriterUrl")]
         public string MyNoSqlWriterUrl { get; set; }
@@ -32,5 +28,8 @@ namespace Service.ActiveOrders.Settings
 
         [YamlProperty("ActiveOrders.CleanupOrderLastUpdateTimeout")]
         public string CleanupOrderLastUpdateTimeout { get; set; }
+
+        [YamlProperty("ActiveOrders.MaxUpdateBatchSize")]
+        public int MaxUpdateBatchSize { get; set; }
     }
 }

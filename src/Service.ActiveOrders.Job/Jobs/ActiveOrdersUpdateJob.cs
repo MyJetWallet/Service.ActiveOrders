@@ -4,33 +4,32 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using DotNetCoreDecorators;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
-using Newtonsoft.Json;
-using Service.ActiveOrders.Postgres;
-using Service.ActiveOrders.Services;
+using Service.ActiveOrders.Domain.Models;
+using Service.ActiveOrders.Domain.Services;
 
-namespace Service.ActiveOrders.Jobs
+namespace Service.ActiveOrders.Job.Jobs
 {
     public class ActiveOrdersUpdateJob
     {
         private readonly IActiveOrderCacheManager _cacheCacheManager;
         private readonly ILogger<ActiveOrdersUpdateJob> _logger;
-        private readonly DbContextOptionsBuilder<ActiveOrdersContext> _dbContextOptionsBuilder;
         private readonly ILoggerFactory _loggerFactory;
+        private int _maxBatchSize;
 
         public ActiveOrdersUpdateJob(ISubscriber<IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent>> subscriber,
             IActiveOrderCacheManager cacheCacheManager,
             ILogger<ActiveOrdersUpdateJob> logger,
-            DbContextOptionsBuilder<ActiveOrdersContext> dbContextOptionsBuilder,
             ILoggerFactory loggerFactory)
         {
             _cacheCacheManager = cacheCacheManager;
             _logger = logger;
-            _dbContextOptionsBuilder = dbContextOptionsBuilder;
             _loggerFactory = loggerFactory;
+
+            _maxBatchSize = Program.Settings.MaxUpdateBatchSize;
+
             subscriber.Subscribe(HandleEvents);
         }
 
@@ -55,10 +54,8 @@ namespace Service.ActiveOrders.Jobs
                         var price = !string.IsNullOrEmpty(e.Update.Price) ?  e.Update.Price : "0";
                         var remainingVolume = !string.IsNullOrEmpty(e.Update.RemainingVolume) ? e.Update.RemainingVolume : "0";
 
-                        var entity =  OrderEntity.Create(
+                        var entity =  OrderNoSqlEntity.Create(
                             e.Update.WalletId,
-                            e.Update.BrokerId,
-                            e.Update.AccountId,
                             new SpotOrder(
                                 id,
                                 MapOrderType(e.Update.OrderType),
@@ -74,13 +71,42 @@ namespace Service.ActiveOrders.Jobs
                             ));
                         return entity;
                     })
+                    .OrderBy(e => e.Order.LastSequenceId)
                     .ToList();
 
-                
-                //await UpdateOrderInDatabaseAsync(updates);
 
-                await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
+                var index = 0;
 
+                while (index < updates.Count)
+                {
+                    var orders = updates.Skip(index).Take(_maxBatchSize).ToList();
+
+                    _logger.LogInformation("Take {count} orders from batch {catchCount}", orders.Count, updates.Count);
+
+                    try
+                    {
+                        await _cacheCacheManager.UpdateOrderInNoSqlCache(updates);
+                    }
+                    catch(Exception ex)
+                    {
+                        _logger.LogError(ex, "Cannot handle {count}order updates", orders.Count);
+                        if (_maxBatchSize > 50)
+                        {
+                            _maxBatchSize = _maxBatchSize / 2;
+                            Console.WriteLine($"Batch size decreased to {_maxBatchSize}");
+                        }
+
+                        throw;
+                    }
+
+                    index += orders.Count;
+                }
+
+                if (_maxBatchSize != Program.Settings.MaxUpdateBatchSize)
+                {
+                    _maxBatchSize = Program.Settings.MaxUpdateBatchSize;
+                    Console.WriteLine($"Batch size restored to {_maxBatchSize}");
+                }
             }
             catch (Exception ex)
             {
@@ -156,33 +182,6 @@ namespace Service.ActiveOrders.Jobs
 
             Console.WriteLine($"Receive unknown status from ME: {status}");
             return OrderStatus.UnknownStatus;
-        }
-
-        //todo: add metrics to this method
-        private async Task UpdateOrderInDatabaseAsync(List<OrderEntity> updates)
-        {
-            using var activity = MyTelemetry.StartActivity("Apply changes to database");
-
-
-            var sw = new Stopwatch();
-            sw.Start();
-            await using var ctx = GetDbContext();
-            {
-                if (updates.Any())
-                {
-                    var count = await ctx.InsertOrUpdateAsync(updates);
-                    _logger.LogDebug("Successfully insert or update: {count}", count);
-                }
-            }
-            sw.Stop();
-            
-            _logger.LogInformation("Apply DB time: {timeText} ms", sw.ElapsedMilliseconds.ToString());
-            
-        }
-
-        private ActiveOrdersContext GetDbContext()
-        {
-            return new ActiveOrdersContext(_dbContextOptionsBuilder.Options, _loggerFactory);
         }
     }
 }

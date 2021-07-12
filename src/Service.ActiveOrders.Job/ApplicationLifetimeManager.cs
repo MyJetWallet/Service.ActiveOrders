@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using MyJetWallet.Sdk.Service;
 using MyServiceBus.TcpClient;
 
-namespace Service.ActiveOrders
+namespace Service.ActiveOrders.Job
 {
     public class ApplicationLifetimeManager : ApplicationLifetimeManagerBase
     {

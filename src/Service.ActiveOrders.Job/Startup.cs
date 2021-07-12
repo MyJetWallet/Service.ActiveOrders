@@ -1,23 +1,21 @@
 ﻿using System.Reflection;
+using Autofac;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Autofac;
-using Microsoft.Extensions.Configuration;
 using MyJetWallet.Sdk.GrpcMetrics;
 using MyJetWallet.Sdk.GrpcSchema;
 using MyJetWallet.Sdk.Service;
 using Prometheus;
 using ProtoBuf.Grpc.Server;
-using Service.ActiveOrders.Grpc;
-using Service.ActiveOrders.Modules;
-using Service.ActiveOrders.Services;
+using Service.ActiveOrders.Job.Modules;
 using SimpleTrading.BaseMetrics;
 using SimpleTrading.ServiceStatusReporterConnector;
 
-namespace Service.ActiveOrders
+namespace Service.ActiveOrders.Job
 {
     public class Startup
     {
@@ -60,8 +58,6 @@ namespace Service.ActiveOrders
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcSchema<ActiveOrderService, IActiveOrderService>();
-
                 endpoints.MapGrpcSchemaRegistry();
 
                 endpoints.MapGet("/", async context =>

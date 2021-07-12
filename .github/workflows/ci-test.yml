@@ -31,13 +31,19 @@ jobs:
     - name: ls
       run: ls
 
-    - name: Publish Service
+    - name: Publish Service API
       run: dotnet publish --no-build ./src/Service.ActiveOrders/Service.ActiveOrders.csproj --configuration Release --output ./publish-api
 
-    - name: Check Service dir
+    - name: Publish Service JOB
+      run: dotnet publish --no-build ./src/Service.ActiveOrders.Job/Service.ActiveOrders.Job.csproj --configuration Release --output ./publish-job
+
+    - name: Check Service dir api
       run: ls ./publish-api
+
+    - name: Check Service dir job
+      run: ls ./publish-job
       
-    - name: Publish image
+    - name: Publish image API
       uses: docker/build-push-action@v1
       with:
         username: ${{ github.actor }}
@@ -48,7 +54,7 @@ jobs:
         tags: latest
         build_args: app_version=myjetwallet.service.activeorders-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
-    - name: Publish image ST
+    - name: Publish image ST API
       uses: docker/build-push-action@v1
       with:
         username: ${{ secrets.ST_DOCKER_USER }}
@@ -60,16 +66,45 @@ jobs:
         add_git_labels: true
         build_args: app_version=myjetwallet.service.activeorders-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
+    - name: Publish image JOB
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        path: ./publish-job
+        registry: docker.pkg.github.com
+        repository: ${{ secrets.ORG_NAME }}/service.activeorders.job/myjetwallet.service.activeorders.job-test
+        tags: latest
+        build_args: app_version=myjetwallet.service.activeorders.job-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
+    - name: Publish image ST JOB
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.ST_DOCKER_USER }}
+        password: ${{ secrets.ST_DOCKER_PASSWORD }}
+        path: ./publish-api
+        registry: simpletrading.azurecr.io
+        repository: spot/myjetwallet.service.activeorders.job-test
+        tags: latest
+        add_git_labels: true
+        build_args: app_version=myjetwallet.service.activeorders.job-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
+
   restart:
     runs-on: ubuntu-latest    
     needs: build
     steps:
-    - name: Restart service
+    - name: Restart service API
       uses: Myjetwallet/kube-restart-pods@master
       env:
         KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA__ST_TEST }}
         NAMESPACE: ${{ secrets.KUBE_TEST_NAMESPACE }}
         POD: active-orders
 
+    - name: Restart service JOB
+      uses: Myjetwallet/kube-restart-pods@master
+      env:
+        KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA__ST_TEST }}
+        NAMESPACE: ${{ secrets.KUBE_TEST_NAMESPACE }}
+        POD: active-orders-job
 
 
