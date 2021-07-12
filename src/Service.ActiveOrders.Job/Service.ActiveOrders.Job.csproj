@@ -34,4 +34,10 @@
     <ProjectReference Include="..\Service.ActiveOrders.Domain\Service.ActiveOrders.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Dockerfile">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
