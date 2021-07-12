@@ -9,7 +9,7 @@ namespace Service.ActiveOrders.Client
 {
     public static class AutofacHelper
     {
-        public static void RegisterActiveOrdersClients(this ContainerBuilder builder, IMyNoSqlSubscriber myNoSqlSubscriber)
+        public static void RegisterActiveOrdersClients(this ContainerBuilder builder, string activeOrdersGrpcServiceUrl, IMyNoSqlSubscriber myNoSqlSubscriber)
         {
             var subs = new MyNoSqlReadRepository<OrderNoSqlEntity>(myNoSqlSubscriber, OrderNoSqlEntity.TableName);
 
