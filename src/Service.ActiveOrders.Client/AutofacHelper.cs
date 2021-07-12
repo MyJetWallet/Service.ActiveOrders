@@ -13,11 +13,18 @@ namespace Service.ActiveOrders.Client
         {
             var subs = new MyNoSqlReadRepository<OrderNoSqlEntity>(myNoSqlSubscriber, OrderNoSqlEntity.TableName);
 
-            var factory = new ActiveOrdersClientFactory(activeOrdersGrpcServiceUrl, subs);
+            var service = new ActiveOrderServiceCached(subs);
 
-            builder.RegisterInstance(factory.ActiveOrderService()).As<IActiveOrderService>().SingleInstance();
+            builder.RegisterInstance(service).As<IActiveOrderService>().SingleInstance();
 
             builder.RegisterInstance(subs).As<IMyNoSqlServerDataReader<OrderNoSqlEntity>>().SingleInstance();
+        }
+
+        public static void RegisterActiveOrdersClientsWithoutCache(this ContainerBuilder builder, string activeOrdersGrpcServiceUrl)
+        {
+            var factory = new ActiveOrdersClientFactory(activeOrdersGrpcServiceUrl);
+
+            builder.RegisterInstance(factory.ActiveOrderServiceGrpc()).As<IActiveOrderService>().SingleInstance();
         }
     }
 }

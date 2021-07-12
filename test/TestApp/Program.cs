@@ -24,9 +24,9 @@ namespace TestApp
 
             myNoSqlClient.Start();
             await Task.Delay(2000);
-            var factory = new ActiveOrdersClientFactory("http://localhost:80", subs);
+            
 
-            var client = factory.ActiveOrderService();
+            var client = new ActiveOrderServiceCached(subs);
 
             var orders = await client.GetActiveOrdersAsync(new GetActiveOrdersRequest(){WalletId = "manual-test-w-003" });
 
