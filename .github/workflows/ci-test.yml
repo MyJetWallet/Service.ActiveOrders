@@ -82,7 +82,7 @@ jobs:
       with:
         username: ${{ secrets.ST_DOCKER_USER }}
         password: ${{ secrets.ST_DOCKER_PASSWORD }}
-        path: ./publish-api
+        path: ./publish-job
         registry: simpletrading.azurecr.io
         repository: spot/myjetwallet.service.activeorders.job-test
         tags: latest
