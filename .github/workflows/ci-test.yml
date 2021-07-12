@@ -73,7 +73,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
         path: ./publish-job
         registry: docker.pkg.github.com
-        repository: ${{ secrets.ORG_NAME }}/service.activeorders.job/myjetwallet.service.activeorders.job-test
+        repository: ${{ secrets.ORG_NAME }}/service.activeorders/myjetwallet.service.activeorders.job-test
         tags: latest
         build_args: app_version=myjetwallet.service.activeorders.job-test:latest,app_compilation_date=${{ steps.current-time.outputs.formattedTime }}
 
