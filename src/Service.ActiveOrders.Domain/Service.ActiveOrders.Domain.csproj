@@ -7,7 +7,7 @@
   <ItemGroup>
     <PackageReference Include="AsyncAwaitUtils" Version="1.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
-    <PackageReference Include="MyJetWallet.Domain" Version="1.0.30" />
+    <PackageReference Include="MyJetWallet.Domain" Version="1.0.31" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcMetrics" Version="2.0.0" />
     <PackageReference Include="MyJetWallet.Sdk.GrpcSchema" Version="1.0.6" />
 
