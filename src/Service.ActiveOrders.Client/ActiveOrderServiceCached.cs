@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using MyJetWallet.Domain.Orders;
 using MyNoSqlServer.Abstractions;
 using MyNoSqlServer.DataReader;
 using Service.ActiveOrders.Domain.Models;
@@ -10,12 +12,10 @@ namespace Service.ActiveOrders.Client
 {
     public class ActiveOrderServiceCached : IActiveOrderService
     {
-        private readonly IActiveOrderService _service;
         private readonly IMyNoSqlServerDataReader<OrderNoSqlEntity> _reader;
 
-        public ActiveOrderServiceCached(IActiveOrderService service, MyNoSqlReadRepository<OrderNoSqlEntity> reader)
+        public ActiveOrderServiceCached(MyNoSqlReadRepository<OrderNoSqlEntity> reader)
         {
-            _service = service;
             _reader = reader;
         }
 
@@ -31,8 +31,8 @@ namespace Service.ActiveOrders.Client
 
                 return Task.FromResult(new SpotOrderList() {Orders = res});
             }
-
-            return _service.GetActiveOrdersAsync(request);
+            
+            return Task.FromResult(new SpotOrderList() { Orders = new List<SpotOrder>() });
         }
     }
 }
