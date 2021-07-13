@@ -37,6 +37,13 @@ namespace Service.ActiveOrders.Job.Modules
 
             builder.RegisterInstance(noSqlWriter).AsSelf().SingleInstance();
 
+            builder
+                .RegisterType<ActiveOrdersMetricJob>()
+                .WithParameter("nosqlWriterUrl", Program.Settings.MyNoSqlWriterUrl)
+                .As<IStartable>()
+                .AutoActivate()
+                .SingleInstance();
+
         }
     }
 }

@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Autofac;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
+using MyJetWallet.Sdk.Service.Tools;
 using Service.ActiveOrders.Domain.Models;
 using Service.ActiveOrders.Domain.Services;
 
 namespace Service.ActiveOrders.Job.Jobs
 {
+    
+
     public class ActiveOrdersUpdateJob
     {
         private readonly IActiveOrderCacheManager _cacheCacheManager;
