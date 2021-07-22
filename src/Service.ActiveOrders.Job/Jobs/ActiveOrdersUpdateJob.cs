@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Autofac;
 using DotNetCoreDecorators;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
 using MyJetWallet.Domain.Orders;
 using MyJetWallet.Sdk.Service;
 using MyJetWallet.Sdk.Service.Tools;
@@ -22,6 +23,8 @@ namespace Service.ActiveOrders.Job.Jobs
         private readonly ILogger<ActiveOrdersUpdateJob> _logger;
         private readonly ILoggerFactory _loggerFactory;
         private int _maxBatchSize;
+
+        private long _lastSequenceNumber = 0;
 
         public ActiveOrdersUpdateJob(ISubscriber<IReadOnlyList<ME.Contracts.OutgoingMessages.OutgoingEvent>> subscriber,
             IActiveOrderCacheManager cacheCacheManager,
@@ -44,6 +47,22 @@ namespace Service.ActiveOrders.Job.Jobs
             _logger.LogInformation("Receive {count} events", events.Count);
             var sw = new Stopwatch();
             sw.Start();
+
+            if (events.Count == 0)
+                return;
+
+            var minSecNum = events.Min(e => e.Header.SequenceNumber);
+            var maxSecNum = events.Max(e => e.Header.SequenceNumber);
+
+            if (_lastSequenceNumber > 0 && _lastSequenceNumber != minSecNum - 1)
+            {
+                _logger.LogError($"Miss events from {_lastSequenceNumber+1} to {minSecNum-1}");
+            }
+
+            if (maxSecNum - minSecNum + 1 != events.Count)
+            {
+                _logger.LogError($"Receive batch with miss events. Min: {minSecNum}; max: {maxSecNum}; count: {events.Count}");
+            }
 
             try
             {
@@ -111,6 +130,8 @@ namespace Service.ActiveOrders.Job.Jobs
                     _maxBatchSize = Program.Settings.MaxUpdateBatchSize;
                     Console.WriteLine($"Batch size restored to {_maxBatchSize}");
                 }
+
+                _lastSequenceNumber = maxSecNum;
             }
             catch (Exception ex)
             {
@@ -123,7 +144,7 @@ namespace Service.ActiveOrders.Job.Jobs
             }
 
             sw.Stop();
-            _logger.LogInformation("Handled {count} events. Time: {timeRangeText}", events.Count, sw.Elapsed.ToString());
+            _logger.LogInformation("Handled {count} events. Time: {timeRangeText}. MinNumber: {minSecNum}, MaxNumber: {maxSecNum}", events.Count, sw.Elapsed.ToString(), minSecNum, maxSecNum);
         }
 
         
